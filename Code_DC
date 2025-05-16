@@ -1,0 +1,92 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+// File: main.c
+#include <xc.h>
+
+#define _XTAL_FREQ 8000000UL
+
+// Configuration bits
+#pragma config FOSC = HS    // High-speed crystal/resonator
+#pragma config WDTE = OFF   // Watchdog Timer off
+#pragma config PWRTE = OFF  // Power-up Timer off
+#pragma config BOREN = ON   // Brown-out Reset on
+#pragma config LVP = OFF    // Low-voltage programming off
+#pragma config CPD = OFF    // Data EEPROM code protection off
+#pragma config WRT = OFF    // Flash write protection off
+#pragma config CP = OFF     // Flash code protection off
+
+#define REV_BTN     PORTBbits.RB0
+#define LV0_BTN     PORTBbits.RB1
+#define LV1_BTN     PORTBbits.RB2
+#define LV2_BTN     PORTBbits.RB3
+#define LV3_BTN     PORTBbits.RB4
+
+// ???????? ????????
+#define MOTOR1  PORTDbits.RD0  
+#define MOTOR2  PORTDbits.RD1
+
+void init_ports(void) {
+
+    ADCON1 = 0x07;
+    CMCON  = 0x07;
+    
+    TRISB = 0b00011111;
+    TRISD = 0b11111100;
+    TRISCbits.TRISC2 = 0;
+    
+    PORTB = 0;
+    PORTD = 0;
+}
+
+void init_pwm(void) {
+    T2CON = 0b00000101;
+    PR2   = 249;
+    CCP1CON = 0b00001100;
+    CCPR1L = 0;
+    CCP1CON &= 0xCF;
+}
+
+void set_duty_8bit(uint8_t value) {
+    uint16_t dc = ((uint16_t)value * (PR2+1)) >> 8;  
+    CCPR1L = (dc & 0x03FC) >> 2;
+    CCP1CON = (CCP1CON & 0xCF) | (uint8_t)(((dc & 0x0003) << 4) & 0x30);
+
+}
+
+void main(void) {
+    init_ports();
+    init_pwm();
+    
+    MOTOR1 = 0;
+    MOTOR2 = 1;
+    
+    while (1) {
+        if (REV_BTN) {
+            MOTOR1 = !MOTOR1;
+            MOTOR2 = !MOTOR2;
+            __delay_ms(500);
+        }
+        // 0%
+        if (LV0_BTN) {
+            set_duty_8bit(0);
+            __delay_ms(100);
+        }
+        // 50% ? 127/255
+        if (LV1_BTN) {
+            set_duty_8bit(127);
+            __delay_ms(100);
+        }
+        // 75% ? 191/255
+        if (LV2_BTN) {
+            set_duty_8bit(191);
+            __delay_ms(100);
+        }
+        // 100% = 255/255
+        if (LV3_BTN) {
+            set_duty_8bit(255);
+            __delay_ms(100);
+        }
+        __delay_ms(10);
+    }
+}
