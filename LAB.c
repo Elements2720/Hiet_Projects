@@ -70,3 +70,17 @@ void main() {
     delay_ms(500);
   }
 }
+
+//Q5 7-Segment Decoder 0 ==> 9 Common Cathode
+void main () {
+	unsigned char i;
+	TRISB = 0;
+	for (;;) 
+	{
+		for (i = 0; i <= 9; i++) 
+		{
+			PORTB = i;
+			delay_ms(700);
+		}
+	}
+}
